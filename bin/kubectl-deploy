@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+
+# Blue/Green deployment kubectl plugin to safely release a new version of app
+# on k8s environment included LB, ingressroute, service and deployment
+#                                                   ┌────────────────┐
+#                                            ┌─────►│Blue deployment │
+# ┌─────────┐   ┌─────────────┐   ┌────────┐ │      └────────────────┘
+# │   LB    ├──►│ingressroute ├──►│  SVC   ├─┤
+# └─────────┘   └─────────────┘   └────────┘ │      ┌────────────────┐
+#                                            └─────►│Green deployment│
+#                                                   └────────────────┘
+
+set -o nounset
+set -o errexit
+set -o pipefail
+
+DEFAULT_NAMESPACE="default"
+DEFAULT_TAG="latest"
+DEFAULT_TIMEOUT=120
+API_SERVER="127.0.0.1:8443"
+CERT="ca.crt"
+DOCKER_REPO="docker.io/phantasm"
+TOKEN=""
+
+
+
+timestamp() {
+  date +'%Y:%m:%d %T'
+}
+
+title() {
+  echo -n "$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
+}
+get_active_deployment() {
+  kubectl -s ${server} --certificate-authority=${cert} --token=${token} -n ${namespace} get service "${service}" -o=jsonpath='{.spec.selector.version}'
+}
+
+set_image_tag() {
+  kubectl -s ${server} --certificate-authority=${cert} -n ${namespace} set image deployment/${service}-${1} ${service}-${1}=${docker_repo}/${image}:${tag}
+}
+
+check_rollout_status() {
+  kubectl -s ${server} --certificate-authority=${cert} -n ${namespace} rollout status deployment/${service}-${1} --timeout ${timeout}s
+}
+
+switchover_traffic_to_blue() {
+  kubectl -s ${server} --certificate-authority=${cert} -n ${namespace} patch service ${service} -p '{"spec":{"selector":{"version": "blue"}}}'
+}
+
+switchover_traffic_to_green() {
+  kubectl -s ${server} --certificate-authority=${cert} -n ${namespace} patch service ${service} -p '{"spec":{"selector":{"version": "green"}}}'
+}
+
+rollout_back() {
+  kubectl -s ${server} --certificate-authority=${cert} -n ${namespace} rollout undo deployment/${service}-${1}
+  timestamp=$(timestamp)
+  environment_name=$(title "$1")
+  echo "☠︎☠︎☠︎ ${timestamp} Error: Deployment on environment ${environment_name} failed for image \"${docker_repo}/${image}:${tag}\"☠︎☠︎☠︎"
+  exit 1
+}
+
+
+display_usage_and_exit() {
+  echo "Usage: $(basename "$0") [-s <server>] [-c <ca path>] [-n <namespace>] [-T <token>] [-t <timeout>] [-l <tag>] [-d <docker_repo>] <service> <image>" >&2
+  echo "Arguments:" >&2
+  echo "service REQUIRED: The name of the service the script should trigger the Blue/Green deployment" >&2
+  echo "image REQUIRED: Name of Docker image" >&2
+  echo "-n OPTIONAL: the namespace scope for this CLI request, default is the 'default' namespace" >&2
+  echo "-l OPTIONAL: The new docker tag to deployment, defaults is the 'latest' tag" >&2
+  echo "-t OPTIONAL: How long to wait for the deployment to be available, defaults to ${DEFAULT_TIMEOUT} seconds, must be greater than 60" >&2
+  echo "-d OPTIONAL: Name of Docker repository, default is \"${DOCKER_REPO}\"" >&2
+  echo "-s OPTIONAL: The address and port of the Kubernetes API server" >&2
+  echo "-c OPTIONAL: Path to a cert file for the certificate authority" >&2
+  echo "-T OPTIONAL: Token for authentication to the K8S API server" >&2
+  exit 1
+}
+
+namespace=${DEFAULT_NAMESPACE}
+timeout=${DEFAULT_TIMEOUT}
+tag=${DEFAULT_TAG}
+docker_repo=${DOCKER_REPO}
+server=${API_SERVER}
+cert=${CERT}
+token=${TOKEN}
+
+while getopts ':n:t:l:d:T:c:s:' arg
+do
+    case ${arg} in
+        n) namespace=${OPTARG};;
+        t) timeout=${OPTARG};;
+        l) tag=${OPTARG};;
+        d) docker_repo=${OPTARG};;
+        T) token=${OPTARG};;
+        c) cert=${OPTARG};;
+        s) server=${OPTARG};;
+        *) display_usage_and_exit
+    esac
+done
+
+shift $((OPTIND-1))
+if [ "$#" -ne 2 ] ; then   
+  display_usage_and_exit
+fi
+readonly service="$1"
+readonly image="$2"
+
+if [[ ${timeout} -le 60 ]]; then
+  display_usage_and_exit
+fi
+
+current_deployment=$(get_active_deployment)
+
+if [ "${current_deployment}" = "green" ]; then
+  set_image_tag "blue"
+  if check_rollout_status "blue" ; then
+    switchover_traffic_to_blue
+  else
+    rollout_back "blue"
+  fi 
+else
+  set_image_tag "green"
+  if check_rollout_status "green" ; then
+    switchover_traffic_to_green
+  else
+    rollout_back "green"
+  fi 
+fi
