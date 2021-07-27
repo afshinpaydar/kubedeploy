@@ -316,7 +316,7 @@ func blueGreenDeploy(appName string, version string) {
 		fmt.Printf("deployment.apps/%s scaled\n", newDeploymentName)
 	}
 
-	rolloutStatus := waitRolloutStatus(newDeploymentName, appName, targetReplicas)
+	rolloutStatus := waitRolloutStatus(newDeploymentName, appName, targetReplicas, version)
 	if !rolloutStatus {
 		fmt.Println("FATAL: Rollout of new version failed! Release aborted.")
 		// TODO: deploymentStatus
@@ -355,18 +355,21 @@ func blueGreenDeploy(appName string, version string) {
 		os.Exit(1)
 	}
 
+	switchOverService(appName, version)
+
 }
 
-func waitRolloutStatus(newDeploymentName string, appName string, targetReplicas int32) bool {
+func waitRolloutStatus(newDeploymentName string, appName string, targetReplicas int32, version string) bool {
 	clientset, namespace := clientSet()
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("FATAL: Unable to find spare dormant deploymen")
+			fmt.Println("FATAL: Unable to find spare deploymen")
+			// TODO: Rollback dormant and scale down to zero
 			os.Exit(1)
 		}
 	}()
 
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"version": "dormant", "app": appName}}
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"version": version, "app": appName}}
 	opts := metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 		Limit:         1,
@@ -400,8 +403,34 @@ func waitRolloutStatus(newDeploymentName string, appName string, targetReplicas 
 			fmt.Printf("deployment '%s' rollout timeout\n", newDeploymentName)
 			return false
 		} else if deployments.Items[0].Status.ReadyReplicas == targetReplicas {
-			fmt.Printf("deployment '%s' successfully rolled out\n", newDeploymentName)
+			fmt.Printf("deployment '%s' successfully rolled out to version '%s'\n", newDeploymentName, version)
 			return true
 		}
 	}
+}
+
+func switchOverService(appName string, version string) {
+	clientset, namespace := clientSet()
+
+	service, err := clientset.CoreV1().Services(namespace).Get(context.TODO(), appName, metav1.GetOptions{})
+	if err != nil {
+		fmt.Println("FATAL: Unable to find service")
+		os.Exit(1)
+	}
+
+	payload := []patchStringValue{{
+		Op:    "replace",
+		Path:  "/spec/selector/version",
+		Value: version,
+	}}
+	payloadBytes, _ := json.Marshal(payload)
+	// Patch label of Service
+	_, err = clientset.CoreV1().
+		Services(namespace).
+		Patch(context.TODO(), service.Name, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Printf("service/%s patched", service.Name)
 }
