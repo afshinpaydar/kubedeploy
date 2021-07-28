@@ -1,20 +1,13 @@
-name: build
-
-on:
-  push:
-    branches:
-      - master
-      - main
-    tags:
-      - 'v*.*.*'
-    paths-ignore:
-      - '**.md'
+name: "CI"
+on: push
 
 jobs:
-  build:
-    timeout-minutes: 15
-    runs-on: ubuntu-latest
-    
+  build: # make sure build/ci work properly
+    name: CI on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]    
     steps: 
       - name: Checkout 🛎️
         uses: actions/checkout@v2.3.1
@@ -28,8 +21,10 @@ jobs:
           go version
           go mod download
           go get -u golang.org/x/lint/golint
+      # - name: Run testing
+      #   run: cd test && go test -v
       - name: Run build
-        run: go build .
+        run: go build  -o out/kubectl-deploy-${{ matrix.os }} .
       - name: Run vet & lint
         run: |
           go vet .
@@ -50,12 +45,10 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: out/kubedeploy*
+          file: out/kubectl-deploy*
           tag: ${{ github.ref }}
           overwrite: true
           file_glob: true
-      # - name: Run testing
-      #   run: cd test && go test -v
       # - name: Send slack notification
       #   uses: 8398a7/action-slack@v3
       #   with:
