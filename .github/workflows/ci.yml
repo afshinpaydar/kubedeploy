@@ -2,7 +2,25 @@ name: "CI"
 on: push
 
 jobs:
-  build: # make sure build/ci work properly
+  create_release:
+    name: Create release
+    if: contains(github.ref, 'tags')
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+  build:
     name: CI on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -21,25 +39,14 @@ jobs:
           go version
           go mod download
           go get -u golang.org/x/lint/golint
-      # - name: Run testing
-      #   run: cd test && go test -v
-      - name: Run build
-        run: go build  -o out/kubectl-deploy-${{ matrix.os }} .
       - name: Run vet & lint
         run: |
           go vet .
           golint .
-      - name: Create a new release
-        if: contains(github.ref, 'tags')
-        id: create_release
-        uses: actions/create-release@v1.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
+      # - name: Run testing
+      #   run: cd test && go test -v
+      - name: Run build
+        run: go build  -o out/kubectl-deploy-${{ matrix.os }} .
       - name: Upload binaries to the new release
         if: contains(github.ref, 'tags')
         uses: svenstaro/upload-release-action@v2
