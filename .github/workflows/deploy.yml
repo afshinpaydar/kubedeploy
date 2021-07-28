@@ -30,8 +30,8 @@ jobs:
         run: |
           go vet .
           golint .
-      - name: Run testing
-        run: cd test && go test -v
+      # - name: Run testing
+      #   run: cd test && go test -v
       # - name: Send slack notification
       #   uses: 8398a7/action-slack@v3
       #   with:
