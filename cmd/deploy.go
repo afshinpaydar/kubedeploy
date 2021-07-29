@@ -95,7 +95,7 @@ func blueGreenDeploy(appName string, version string) {
 
 		// Set the new deployment to be dormant again ready for the next release
 		scaleDeployment(newDeploymentName, 0)
-		patchDeployment(newDeploymentName, "dormant", dockerHub, "dormant")
+		patchDeployment(newDeploymentName, "dormant", dockerHub, imageName)
 		os.Exit(1)
 	}
 
@@ -104,7 +104,7 @@ func blueGreenDeploy(appName string, version string) {
 	// Scale down old deployment to zero
 	scaleDeployment(oldDeploymentName, 0)
 	// Set the old deployment to be dormant ready for the next release
-	patchDeployment(oldDeploymentName, "dormant", dockerHub, "dormant")
+	patchDeployment(oldDeploymentName, "dormant", dockerHub, imageName)
 	fmt.Println("Success: Release complete")
 }
 

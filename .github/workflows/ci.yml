@@ -25,7 +25,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]    
+        config:
+          - { os: macos-latest, arch: x86_64, python-arch: x64, name: darwin }
+          - { os: ubuntu-latest, arch: x86_64, python-arch: x64, name: linux }
+          - { os: windows-latest, arch: x86_64, python-arch: x64, name: windows }
     steps: 
       - name: Checkout 🛎️
         uses: actions/checkout@v2.3.1
@@ -46,7 +49,7 @@ jobs:
       # - name: Run testing
       #   run: cd test && go test -v
       - name: Run build
-        run: go build  -o out/kubectl-deploy-${{ matrix.os }} .
+        run: go build  -o out/kubectl-deploy-${{ matrix.config.arch }}-${{ matrix.config.name }} .
       - name: Upload binaries to the new release
         if: contains(github.ref, 'tags')
         uses: svenstaro/upload-release-action@v2
