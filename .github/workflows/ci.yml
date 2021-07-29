@@ -25,6 +25,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
         config:
           - { os: macos-latest, arch: x86_64, python-arch: x64, name: darwin }
           - { os: ubuntu-latest, arch: x86_64, python-arch: x64, name: linux }
