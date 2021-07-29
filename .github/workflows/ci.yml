@@ -21,7 +21,7 @@ jobs:
           prerelease: false
 
   build:
-    name: CI on ${{ matrix.os }}
+    name: CI on ${{ matrix.cinfig.os }}
     runs-on: ${{ matrix.config.os }}
     strategy:
       matrix:
