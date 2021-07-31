@@ -17,11 +17,12 @@ $ make install
 $ kubectl deploy version
 $ docker run -it kubectl-deploy:latest deploy version
 ```
-#### Manual
+#### Manual (Linux)
 ```sh
 $ curl -sS  https://github.com/afshinpaydar/kubedeploy/releases/latest/kubectl-deploy-x86-64-linux -o kubectl-deploy
 $ sudo mv kubectl-deploy /usr/local/bin/
-$ kubectl deploy -v
+$ chmod +x kubectl-deploy
+$ kubectl deploy version
 ```
 
 ### How it works
