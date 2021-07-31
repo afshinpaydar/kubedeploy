@@ -23,6 +23,7 @@ import (
 	"context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
@@ -68,4 +69,24 @@ func switchOverService(appName string, version string) {
 		os.Exit(1)
 	}
 	fmt.Printf("service/%s patched\n", service.Name)
+}
+
+func findService(appName string) (name, sAppLabel, sVerLabel string) {
+	clientset, namespace := clientSet()
+	service, err := clientset.CoreV1().Services(namespace).Get(context.TODO(), appName, v1.GetOptions{})
+	if err != nil {
+		name = "<Not Found>"
+	} else {
+		name = service.Name
+	}
+
+	sAppLabel, ok := service.Spec.Selector["app"]
+	if !ok {
+		sAppLabel = "<Not Found>"
+	}
+	sVerLabel, ok = service.Spec.Selector["version"]
+	if !ok {
+		sVerLabel = "<Not Found>"
+	}
+	return name, sAppLabel, sVerLabel
 }

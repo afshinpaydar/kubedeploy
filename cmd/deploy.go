@@ -25,6 +25,7 @@ import (
 
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -76,7 +77,7 @@ func getNewDeployment(appName string) string {
 
 	defer func() {
 		if r := recover(); r != nil {
-			logger("Deployment name or tags are wrong, run 'kubectl deploy diff' for more details", Fatal)
+			logger(fmt.Sprintf("Deployment name or tags are wrong, run 'kubectl deploy show %s' for more details", appName), Fatal)
 		}
 	}()
 
@@ -87,7 +88,11 @@ func blueGreenDeploy(appName string, version string) {
 	newDeploymentName := getNewDeployment(appName)
 	oldDeploymentName := getOldDeployment(appName)
 	if newDeploymentName == oldDeploymentName {
-		logger("Deployment name or tags are wrong, run 'kubectl deploy diff' for more details", Fatal)
+		logger(fmt.Sprintf("Deployment name or tags are wrong, run 'kubectl deploy show %s' for more details", appName), Fatal)
+	}
+
+	if getCurrentVersion(appName) == version {
+		logger(fmt.Sprintf("App '%s' with version '%s' already exists, run 'kubectl deploy show %s' for more details", appName, version, appName), Fatal)
 	}
 
 	dockerHub := getDockerHub()
@@ -239,4 +244,25 @@ func patchDeployment(deploymentName string, version string, dockerHub string, im
 		os.Exit(1)
 	}
 	fmt.Printf("deployment.apps/%s patched\n", deploymentName)
+}
+
+func findDeployment(appName string, color string) (deployName, gDeployAppLabel, deployVerLabel string) {
+	clientset, namespace := clientSet()
+
+	deployment, err := clientset.AppsV1().Deployments(namespace).Get(context.TODO(), appName+"-"+color, v1.GetOptions{})
+	if err != nil {
+		deployName = "<Not Found>"
+	} else {
+		deployName = deployment.Name
+	}
+
+	deployAppLabel, ok := deployment.Labels["app"]
+	if !ok {
+		deployAppLabel = "<Not Found>"
+	}
+	deployVerLabel, ok = deployment.Labels["version"]
+	if !ok {
+		deployVerLabel = "<Not Found>"
+	}
+	return deployName, deployAppLabel, deployVerLabel
 }
