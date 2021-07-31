@@ -8,7 +8,7 @@ Simple blue/green deployment kubectl plugin
 the name of Deployments and Service doesn’t matter and could be anything,
 and also how the Service exposed to outside of Kubernetes cluster.
 
-![Blue/Green](_img/blue-green.png?raw=true "Blue/Green Deployment")
+![Blue/Green](img/blue-green.png?raw=true "Blue/Green Deployment")
 
 ### Installation
 ```
