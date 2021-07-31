@@ -16,17 +16,14 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 // bluegreenCmd represents the bluegreen command
 var bluegreenCmd = &cobra.Command{
-	Use:   "bluegreen",
-	Short: "Simple blue/green deployment plugin for KUBECTL",
+	Use:   "bluegreen APP_NAME VERSION",
+	Short: "blue/green deployment",
 	Long: `"kube-deploy bluegreen" helps you to implement blue/green deployment in your k8s cluster
 "kubectl-deploy bluegreen" expect two Deployments and one Service, that points to one of those in the active k8s cluster
 the name of Deployments and Service doesn’t matter and could be anything,
@@ -34,8 +31,7 @@ and also how the Service exposed to outside of Kubernetes cluster.`,
 
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 2 {
-			fmt.Println("FATAL: Please pass APP_NAME and VERSION as arguments")
-			os.Exit(1)
+			logger("Please pass APP_NAME and VERSION as arguments", Fatal)
 		} else {
 			blueGreenDeploy(args[0], args[1])
 		}

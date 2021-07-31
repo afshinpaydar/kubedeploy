@@ -1,12 +1,34 @@
 # kubedeploy
 Simple blue/green deployment kubectl plugin
 
-`kube-deploy` helps you to implement blue/green deployment in your k8s cluster:
+`kube-deploy` plugin helps you to manage deployments in your k8s cluster:
+
+### Blue/Green deployment
+`kubectl-deploy bluegreen` expect two Deployments and one Service, that points to one of those in the active k8s cluster
+the name of Deployments and Service doesn’t matter and could be anything,
+and also how the Service exposed to outside of Kubernetes cluster.
+
+                                                   ┌────────────────┐
+                                            ┌─────►│Blue deployment │
+ ┌─────────┐   ┌─────────────┐   ┌────────┐ │      └────────────────┘
+ │   LB    ├──►│ingressroute ├──►│  SVC   ├─┤
+ └─────────┘   └─────────────┘   └────────┘ │      ┌────────────────┐
+                                            └─────►│Green deployment│
+                                                   └────────────────┘
 
 ### Installation
-
+```
+$ make
+$ make install
+$ kubectl deploy version
+$ docker run -it kubectl-deploy:latest deploy version
+```
 #### Manual
-
+```sh
+$ curl -sS  https://github.com/afshinpaydar/kubedeploy/releases/latest/kubectl-deploy-x86-64-linux -o kubectl-deploy
+$ sudo mv kubectl-deploy /usr/local/bin/
+$ kubectl deploy -v
+```
 
 ### How it works
 
@@ -14,6 +36,7 @@ Simple blue/green deployment kubectl plugin
 ### Usage
 
 ### Plugin configurations
+
 
 ### Developing
 

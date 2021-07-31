@@ -1,5 +1,20 @@
-__pycache__
-.DS_Store
-._.DS_Store
-**/.DS_Store
-**/._.DS_Store
+
+# Logs
+logs
+*.log
+
+# dotenv environment variables file
+.env
+.env.*
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# ignore VSCode directory
+.vscode
+
+# swap
+*.swp
+
+# mac
+.DS_Store*

@@ -1,0 +1,37 @@
+package cmd
+
+import (
+	"fmt"
+	"os"
+
+	log "github.com/sirupsen/logrus"
+)
+
+type typeOfLog int
+
+const (
+	Uncategorized typeOfLog = iota
+	Info
+	Warn
+	Fatal
+)
+
+func logger(message string, logType typeOfLog) {
+	customFormatter := new(log.TextFormatter)
+	customFormatter.TimestampFormat = "2006-01-02 15:04:05"
+	log.SetFormatter(customFormatter)
+	customFormatter.FullTimestamp = true
+	switch logType {
+	case Uncategorized:
+		fmt.Println(message)
+	case Info:
+		log.Info(message)
+	case Warn:
+		log.Warn(message)
+	case Fatal:
+		log.Fatal(message)
+		os.Exit(1)
+	default:
+		fmt.Println(message)
+	}
+}
