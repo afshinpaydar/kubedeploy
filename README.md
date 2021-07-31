@@ -12,6 +12,7 @@ and also how the Service exposed to outside of Kubernetes cluster.
 
 ### Installation
 ```
+# assumes you have kubectl command line and a working KUBECONFIG
 $ make
 $ make install
 $ kubectl deploy version

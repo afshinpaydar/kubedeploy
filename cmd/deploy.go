@@ -102,13 +102,8 @@ func blueGreenDeploy(appName string, version string) {
 	rolloutStatus := waitRolloutStatus(newDeploymentName, appName, targetReplicas, version)
 
 	if !rolloutStatus {
-		logger("Rollout of new version failed! Release aborted.", Fatal)
 		// TODO: deploymentStatus
-
-		// Set the new deployment to be dormant again ready for the next release
-		scaleDeployment(newDeploymentName, 0)
-		patchDeployment(newDeploymentName, "dormant", dockerHub, imageName)
-		os.Exit(1)
+		logger("Rollout of new version failed! Release aborted.", Fatal)
 	}
 
 	switchOverService(appName, version)
@@ -121,12 +116,16 @@ func blueGreenDeploy(appName string, version string) {
 }
 
 func waitRolloutStatus(deploymentName string, appName string, targetReplicas int32, version string) bool {
+	dockerHub := getDockerHub()
+	imageName := getImageName()
+
 	clientset, namespace := clientSet()
 	defer func() {
 		if r := recover(); r != nil {
-			logger("Unable to find spare deploymen", Fatal)
 			// TODO: Rollback dormant and scale down to zero
-
+			scaleDeployment(deploymentName, 0)
+			patchDeployment(deploymentName, "dormant", dockerHub, imageName)
+			logger("Unable to find spare deploymen", Fatal)
 		}
 	}()
 
@@ -150,7 +149,10 @@ func waitRolloutStatus(deploymentName string, appName string, targetReplicas int
 			time.Sleep(5 * time.Second)
 			continue
 		} else if timeout <= 0 {
-			fmt.Printf("deployment '%s' rollout timeout\n", deploymentName)
+			// Set the new deployment to be dormant again ready for the next release
+			scaleDeployment(deploymentName, 0)
+			patchDeployment(deploymentName, "dormant", dockerHub, imageName)
+			logger(fmt.Sprintf("deployment '%s' rollout timeout\n", deploymentName), Warn)
 			return false
 		} else if deployments.Items[0].Status.ReadyReplicas == targetReplicas {
 			fmt.Printf("deployment '%s' successfully rolled out to version '%s'\n", deploymentName, version)

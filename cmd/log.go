@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -30,7 +29,6 @@ func logger(message string, logType typeOfLog) {
 		log.Warn(message)
 	case Fatal:
 		log.Fatal(message)
-		os.Exit(1)
 	default:
 		fmt.Println(message)
 	}
