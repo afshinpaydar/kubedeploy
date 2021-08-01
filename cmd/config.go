@@ -17,7 +17,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
@@ -32,8 +31,7 @@ func clientSet() (*kubernetes.Clientset, string) {
 
 	config, err := kubeConfig.ClientConfig()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger(err.Error(), Fatal)
 	}
 	namespace, _, err := kubeConfig.Namespace()
 	if err != nil {
@@ -42,8 +40,7 @@ func clientSet() (*kubernetes.Clientset, string) {
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger(err.Error(), Fatal)
 	}
 	return clientset, namespace
 }
@@ -56,34 +53,29 @@ func getTimeOut() int {
 
 	timeout, ok := viper.Get("TimeOut").(int)
 	if !ok {
-		fmt.Printf("FATAL: Unexpected type for TimeOut Env: %v\n", viper.Get("TimeOut"))
-		os.Exit(1)
+		logger(fmt.Sprintf("Unexpected type for TimeOut Env: %v\n", viper.Get("TimeOut")), Fatal)
 	}
 	return timeout
 }
 
 func getDockerHub() string {
-	if viper.Get("DockerHub") == nil {
-		fmt.Println("FATAL: DockerHub isn't set in config file: '$HOME/.kubectl-deploy.yaml' ")
-		os.Exit(1)
+	if viper.Get("DockerRegistryName") == nil {
+		logger("'DockerRegistryName' isn't set in config file: '$HOME/.kubectl-deploy.yaml'", Fatal)
 	}
-	dockerHub, ok := viper.Get("DockerHub").(string)
+	DockerRegistryName, ok := viper.Get("DockerRegistryName").(string)
 	if !ok {
-		fmt.Printf("FATAL: Unexpected type for DockerHub Env: %v\n", viper.Get("DockerHub"))
-		os.Exit(1)
+		logger(fmt.Sprintf("Unexpected type for DockerRegistryName Env: %v\n", viper.Get("DockerRegistryName")), Fatal)
 	}
-	return dockerHub
+	return DockerRegistryName
 }
 
 func getImageName() string {
 	if viper.Get("ImageName") == nil {
-		fmt.Println("FATAL: ImageName isn't set in config file: '$HOME/.kubectl-deploy.yaml' ")
-		os.Exit(1)
+		logger("ImageName isn't set in config file: '$HOME/.kubectl-deploy.yaml' ", Fatal)
 	}
 	imageName, ok := viper.Get("ImageName").(string)
 	if !ok {
-		fmt.Printf("FATAL: Unexpected type for ImageName Env: %v\n", viper.Get("ImageName"))
-		os.Exit(1)
+		logger(fmt.Sprintf("Unexpected type for ImageName Env: %v\n", viper.Get("ImageName")), Fatal)
 	}
 	return imageName
 }
