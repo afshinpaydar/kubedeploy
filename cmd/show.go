@@ -27,7 +27,7 @@ var showCmd = &cobra.Command{
 And the intended manifests to successfully release with this tool`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
-			logger("Please pass APP_NAME as arguments", Fatal)
+			logger("Please pass SERVICENAME as arguments", Fatal)
 		} else {
 			show(args[0])
 		}

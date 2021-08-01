@@ -22,16 +22,16 @@ import (
 
 // bluegreenCmd represents the bluegreen command
 var bluegreenCmd = &cobra.Command{
-	Use:   "bluegreen APP_NAME VERSION",
+	Use:   "bluegreen SERVICENAME NEWVERSION",
 	Short: "blue/green deployment",
-	Long: `"kube-deploy bluegreen" helps you to implement blue/green deployment in your k8s cluster
-"kubectl-deploy bluegreen" expect two Deployments and one Service, that points to one of those in the active k8s cluster
-the name of Deployments and Service doesn’t matter and could be anything,
-and also how the Service exposed to outside of Kubernetes cluster.`,
+	Long: `"bluegreen" helps you to implement blue/green deployment in your k8s cluster
+	"bluegreen" expect two Deployments and one Service, that points to one of those in the active k8s cluster
+	the name of Deployments must ends with '-blue' and '-green' but Service name could be anything,
+	and also how the Service exposed to outside of Kubernetes cluster.`,
 
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 2 {
-			logger("Please pass APP_NAME and VERSION as arguments", Fatal)
+			logger("Please pass SERVICENAME and NEWVERSION as arguments", Fatal)
 		} else {
 			blueGreenDeploy(args[0], args[1])
 		}
