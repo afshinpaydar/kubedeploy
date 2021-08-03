@@ -88,13 +88,10 @@ func getMinReplicas(appName string) int32 {
 }
 
 func calculateTargetReplica(appName string) int32 {
-	var targetReplicas int32
 	desiredReplicas := getDesiredReplicas(appName)
 	minReplicas := getMinReplicas(appName)
 	if desiredReplicas > minReplicas {
-		targetReplicas = desiredReplicas
-	} else {
-		targetReplicas = minReplicas
+		return desiredReplicas
 	}
-	return targetReplicas
+	return minReplicas
 }

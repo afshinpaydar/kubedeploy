@@ -35,9 +35,8 @@ var bluegreenCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 2 {
 			logger("Please pass SERVICENAME and NEWVERSION as arguments", Fatal)
-		} else {
-			blueGreenDeploy(args[0], args[1])
 		}
+		blueGreenDeploy(args[0], args[1])
 	},
 }
 

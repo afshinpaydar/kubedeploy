@@ -28,9 +28,8 @@ And the intended manifests to successfully release with this tool`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
 			logger("Please pass SERVICENAME as arguments", Fatal)
-		} else {
-			show(args[0])
 		}
+		show(args[0])
 	},
 }
 

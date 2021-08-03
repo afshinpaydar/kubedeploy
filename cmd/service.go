@@ -39,8 +39,7 @@ func getCurrentVersion(appName string) string {
 
 	version, ok := service.Spec.Selector["version"]
 	if !ok {
-		fmt.Printf("FATAL: Unable to find current version deployed for '%s'", appName)
-		os.Exit(1)
+		logger(fmt.Sprintf("FATAL: Unable to find current version deployed for %q", appName), Fatal)
 	}
 	return version
 }

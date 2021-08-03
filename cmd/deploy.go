@@ -53,7 +53,7 @@ func getOldDeployment(appName string) string {
 
 	defer func() {
 		if r := recover(); r != nil {
-			logger(fmt.Sprintf("Unable to find live deployment for '%s' version\n", getCurrentVersion(appName)), Fatal)
+			logger(fmt.Sprintf("Unable to find live deployment for %q version\n", getCurrentVersion(appName)), Fatal)
 		}
 	}()
 
@@ -92,7 +92,7 @@ func blueGreenDeploy(appName string, version string) {
 	}
 
 	if getCurrentVersion(appName) == version {
-		logger(fmt.Sprintf("App '%s' with version '%s' already exists, run 'kubectl deploy show %s' for more details", appName, version, appName), Fatal)
+		logger(fmt.Sprintf("App %q with version %q already exists, run 'kubectl deploy show %s' for more details", appName, version, appName), Fatal)
 	}
 
 	dockerHub := getDockerHub()
@@ -149,23 +149,22 @@ func waitRolloutStatus(deploymentName string, appName string, targetReplicas int
 		}
 
 		if deployments.Items[0].Status.ReadyReplicas < targetReplicas && timeout > 0 {
-			fmt.Printf("Waiting for deployment '%s' rollout to finish: %d out of %d new replicas have been updated...\n", deploymentName, deployments.Items[0].Status.ReadyReplicas, targetReplicas)
+			fmt.Printf("Waiting for deployment %q rollout to finish: %d out of %d new replicas have been updated...\n", deploymentName, deployments.Items[0].Status.ReadyReplicas, targetReplicas)
 			timeout -= 5
 			time.Sleep(5 * time.Second)
 			continue
-		} else if timeout <= 0 {
+		}
+		if timeout <= 0 {
 			// Set the new deployment to be dormant again ready for the next release
 			scaleDeployment(deploymentName, 0)
 			patchDeployment(deploymentName, "dormant", dockerHub, imageName)
-			logger(fmt.Sprintf("deployment '%s' rollout timeout\n", deploymentName), Warn)
-			return false
-		} else if deployments.Items[0].Status.ReadyReplicas == targetReplicas {
-			fmt.Printf("deployment '%s' successfully rolled out to version '%s'\n", deploymentName, version)
-			return true
-		} else {
-			fmt.Printf("deployment '%s' rollout faild\n", deploymentName)
+			logger(fmt.Sprintf("deployment %q rollout timeout\n", deploymentName), Warn)
 			return false
 		}
+		if deployments.Items[0].Status.ReadyReplicas == targetReplicas {
+			logger(fmt.Sprintf("deployment %q successfully rolled out to version %q\n", deploymentName, version), Info)
+		}
+		return true
 	}
 }
 
