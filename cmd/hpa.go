@@ -18,7 +18,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"context"
 
@@ -32,14 +31,12 @@ func getDesiredReplicas(appName string) int32 {
 
 	hpa, err := clientset.AutoscalingV1().HorizontalPodAutoscalers(namespace).Get(context.TODO(), appName, metav1.GetOptions{})
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger(err.Error(), Fatal)
 	}
 
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Warning: Unable to find disired replicas for Horizontal Pod Autoscaler")
-			os.Exit(1)
+			logger("Unable to find disired replicas for Horizontal Pod Autoscaler", Fatal)
 		}
 	}()
 
@@ -60,11 +57,10 @@ func switchOverHPA(appName string, newDeploymentName string) {
 		HorizontalPodAutoscalers(namespace).
 		Patch(context.TODO(), appName, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger(err.Error(), Fatal)
 	}
 
-	fmt.Printf("horizontalpodautoscaler.autoscaling/%s patched\n", appName)
+	logger(fmt.Sprintf("horizontalpodautoscaler.autoscaling/%s patched\n", appName), Info)
 }
 
 func getMinReplicas(appName string) int32 {
@@ -72,14 +68,12 @@ func getMinReplicas(appName string) int32 {
 
 	hpa, err := clientset.AutoscalingV1().HorizontalPodAutoscalers(namespace).Get(context.TODO(), appName, metav1.GetOptions{})
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger(err.Error(), Fatal)
 	}
 
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Warning: Unable to find min replicas for Horizontal Pod Autoscaler")
-			os.Exit(1)
+			logger("Unable to find min replicas for Horizontal Pod Autoscaler", Fatal)
 		}
 	}()
 

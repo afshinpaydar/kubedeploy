@@ -24,7 +24,9 @@ func logger(message string, logType typeOfLog) {
 	case Uncategorized:
 		fmt.Println(message)
 	case Info:
-		log.Info(message)
+		if Verbose {
+			log.Info(message)
+		}
 	case Warn:
 		log.Warn(message)
 	case Fatal:

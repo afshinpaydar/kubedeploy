@@ -18,11 +18,11 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"context"
 
+	"github.com/briandowns/spinner"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,8 +47,7 @@ func getOldDeployment(appName string) string {
 	}
 	deployments, err := clientset.AppsV1().Deployments(namespace).List(context.TODO(), opts)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger(err.Error(), Fatal)
 	}
 
 	defer func() {
@@ -71,8 +70,7 @@ func getNewDeployment(appName string) string {
 	}
 	deployments, err := clientset.AppsV1().Deployments(namespace).List(context.TODO(), opts)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger(err.Error(), Fatal)
 	}
 
 	defer func() {
@@ -141,27 +139,32 @@ func waitRolloutStatus(deploymentName string, appName string, targetReplicas int
 	}
 
 	timeout := getTimeOut()
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	s.Color("green")
 	for {
 		deployments, err := clientset.AppsV1().Deployments(namespace).List(context.TODO(), opts)
+		s.Prefix = fmt.Sprintf("Waiting for deployment %q rollout ", deploymentName)
+		s.Restart()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			logger(err.Error(), Fatal)
 		}
-
 		if deployments.Items[0].Status.ReadyReplicas < targetReplicas && timeout > 0 {
-			fmt.Printf("Waiting for deployment %q rollout to finish: %d out of %d new replicas have been updated...\n", deploymentName, deployments.Items[0].Status.ReadyReplicas, targetReplicas)
-			timeout -= 5
-			time.Sleep(5 * time.Second)
+			timeout -= 2
+			time.Sleep(2 * time.Second)
 			continue
 		}
 		if timeout <= 0 {
 			// Set the new deployment to be dormant again ready for the next release
+			s.Stop()
+			fmt.Println("")
 			scaleDeployment(deploymentName, 0)
 			patchDeployment(deploymentName, "dormant", dockerHub, imageName)
 			logger(fmt.Sprintf("deployment %q rollout timeout\n", deploymentName), Warn)
 			return false
 		}
 		if deployments.Items[0].Status.ReadyReplicas == targetReplicas {
+			s.Stop()
+			fmt.Println("")
 			logger(fmt.Sprintf("deployment %q successfully rolled out to version %q\n", deploymentName, version), Info)
 		}
 		return true
@@ -185,10 +188,10 @@ func scaleDeployment(deploymentName string, replica int32) {
 		UpdateScale(context.TODO(), deploymentName, scale, metav1.UpdateOptions{})
 
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger(err.Error(), Fatal)
 	}
-	fmt.Printf("deployment.apps/%s scaled\n", deploymentName)
+
+	logger(fmt.Sprintf("deployment.apps/%s scaled\n", deploymentName), Info)
 }
 
 func patchDeployment(deploymentName string, version string, dockerHub string, imageName string) {
@@ -206,8 +209,7 @@ func patchDeployment(deploymentName string, version string, dockerHub string, im
 		AppsV1().Deployments(namespace).
 		Patch(context.TODO(), deploymentName, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger(err.Error(), Fatal)
 	}
 
 	payloadTemplate := []patchStringValue{{
@@ -223,8 +225,7 @@ func patchDeployment(deploymentName string, version string, dockerHub string, im
 		Patch(context.TODO(), deploymentName, types.JSONPatchType, payloadBytesTemplate, metav1.PatchOptions{})
 
 	if errT != nil {
-		fmt.Println(errT)
-		os.Exit(1)
+		logger(errT.Error(), Fatal)
 	}
 
 	payloadDeployment := []patchStringValue{{
@@ -239,10 +240,10 @@ func patchDeployment(deploymentName string, version string, dockerHub string, im
 		AppsV1().Deployments(namespace).
 		Patch(context.TODO(), deploymentName, types.JSONPatchType, payloadBytesDeployment, metav1.PatchOptions{})
 	if errD != nil {
-		fmt.Println(errD)
-		os.Exit(1)
+		logger(errD.Error(), Fatal)
 	}
-	fmt.Printf("deployment.apps/%s patched\n", deploymentName)
+
+	logger(fmt.Sprintf("deployment.apps/%s patched\n", deploymentName), Info)
 }
 
 func findDeployment(appName string, color string) (deployName, gDeployAppLabel, deployVerLabel string) {

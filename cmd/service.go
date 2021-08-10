@@ -18,7 +18,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"context"
 
@@ -33,8 +32,7 @@ func getCurrentVersion(appName string) string {
 	service, err := clientset.CoreV1().Services(namespace).Get(context.TODO(), appName, metav1.GetOptions{})
 
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger(err.Error(), Fatal)
 	}
 
 	version, ok := service.Spec.Selector["version"]
@@ -49,8 +47,7 @@ func switchOverService(appName string, version string) {
 
 	service, err := clientset.CoreV1().Services(namespace).Get(context.TODO(), appName, metav1.GetOptions{})
 	if err != nil {
-		fmt.Println("FATAL: Unable to find service")
-		os.Exit(1)
+		logger(err.Error(), Fatal)
 	}
 
 	payload := []patchStringValue{{
@@ -64,28 +61,26 @@ func switchOverService(appName string, version string) {
 		Services(namespace).
 		Patch(context.TODO(), service.Name, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger(err.Error(), Fatal)
 	}
-	fmt.Printf("service/%s patched\n", service.Name)
+	logger(fmt.Sprintf("service/%s patched\n", service.Name), Info)
 }
 
 func findService(appName string) (name, sAppLabel, sVerLabel string) {
 	clientset, namespace := clientSet()
 	service, err := clientset.CoreV1().Services(namespace).Get(context.TODO(), appName, v1.GetOptions{})
-	if err != nil {
-		name = "<Not Found>"
-	} else {
-		name = service.Name
+	var sName, appLabel, verLabel string = "<Not Found>", "<Not Found>", "<Not Found>"
+
+	if err == nil {
+		sName = service.Name
 	}
 
-	sAppLabel, ok := service.Spec.Selector["app"]
-	if !ok {
-		sAppLabel = "<Not Found>"
+	if _, ok := service.Spec.Selector["app"]; ok {
+		appLabel = service.Spec.Selector["app"]
 	}
-	sVerLabel, ok = service.Spec.Selector["version"]
-	if !ok {
-		sVerLabel = "<Not Found>"
+
+	if _, ok := service.Spec.Selector["version"]; ok {
+		verLabel = service.Spec.Selector["version"]
 	}
-	return name, sAppLabel, sVerLabel
+	return sName, appLabel, verLabel
 }

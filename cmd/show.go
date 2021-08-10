@@ -62,6 +62,6 @@ func show(appName string) {
 		[]string{gDeployName,
 			gDeployAppLabel, gDeployVerLabel},
 	}
-	deploymentTableCreate(dataDeployment)
 	serviceTableCreate(dataService)
+	deploymentTableCreate(dataDeployment)
 }
