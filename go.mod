@@ -14,5 +14,4 @@ require (
 	k8s.io/cli-runtime v0.21.3 // indirect
 	k8s.io/client-go v0.22.0 // indirect
 	k8s.io/klog v0.3.1 // indirect
-	sigs.k8s.io/kustomize v2.0.3+incompatible // indirect
 )
